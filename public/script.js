@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // 1. Depois de fazer o deploy do SEU BACKEND no Render.com,
             // 2. Copie a URL REAL do seu Web Service (ex: https://seu-backend.onrender.com)
             // 3. Cole-a abaixo, adicionando "/chat" no final.
-            const backendUrl = 'https://YOUR_RENDER_BACKEND_URL.onrender.com/chat'; // <-- ATUALIZE AQUI!
+            const backendUrl = 'https://revitaliza-backend.onrender.com'; // <-- ATUALIZE AQUI!
             
             const payload = {
                 user_message: userMessageText,
