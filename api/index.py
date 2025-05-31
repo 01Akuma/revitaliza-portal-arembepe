@@ -2,27 +2,41 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
+from dotenv import load_dotenv, find_dotenv # <--- Importação para carregar .env
 
 app = Flask(__name__)
 
-# --- Configuração de Segurança e CORS para Render.com ---
-# ATENÇÃO: Para produção, você deve substituir origins="*"
-# por origins=["https://sua-url-do-frontend.onrender.com"] para maior segurança.
-CORS(app, origins="*") # Permitir todas as origens temporariamente para facilitar o deploy inicial
+# --- Carregar variáveis do .env localmente (APENAS para desenvolvimento) ---
+# find_dotenv() procura o arquivo .env a partir do diretório atual.
+# load_dotenv() carrega as variáveis de ambiente do .env para os.environ.
+# Isso não afeta ambientes de produção como Vercel/Render, que têm suas próprias variáveis de ambiente.
+if not os.environ.get("VERCEL_URL") and not os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    load_dotenv(find_dotenv())
+
+
+# --- Configuração de Segurança e CORS ---
+# Em produção no Vercel, a variável de ambiente VERCEL_URL é definida.
+# Em produção no Render, a variável RENDER_EXTERNAL_HOSTNAME é definida.
+vercel_url = os.environ.get("VERCEL_URL")
+render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+
+if vercel_url:
+    CORS(app, origins=[f"https://{vercel_url}", "http://localhost:3000", "http://127.0.0.1:8000"])
+elif render_hostname:
+    # Para Render, a URL do frontend será algo como https://seu-frontend.onrender.com
+    CORS(app, origins=[f"https://{render_hostname}", "http://localhost:3000", "http://127.0.0.1:8000"])
+else:
+    # Para desenvolvimento local (fora do `vercel dev` ou Render)
+    CORS(app, origins=["http://127.0.0.1:8000", "http://localhost:3000"])
 
 
 # Configura a chave da API do Gemini
-# EM PRODUÇÃO: A chave deve ser configurada como uma variável de ambiente no Render.
+# A chave será lida de os.environ, que agora pode ter sido preenchido pelo .env localmente,
+# ou pelas variáveis de ambiente da plataforma em produção.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
 
-if not GEMINI_API_KEY:
-    # Se a chave não estiver configurada no ambiente do Render, retorna um erro.
-    @app.route('/chat', methods=['POST']) # Adiciona um handler de erro para este caso
-    def api_key_missing_error():
-        print("ERRO CRÍTICO: Variável de ambiente GEMINI_API_KEY não definida no servidor.")
-        return jsonify({"error": "Erro no servidor: Chave API do Gemini não configurada."}), 500
-
-# Se a chave existir, configure a API do Gemini
+# Configura a biblioteca genai APENAS se a chave estiver disponível.
+# Se a chave estiver faltando, o erro será tratado dentro da função `chat()`.
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
@@ -70,17 +84,18 @@ def chat():
     chama a API do Gemini e retorna a resposta da IA.
     """
     try:
+        # Verifica se a API Key foi configurada no início da função.
+        # Isso é mais robusto do que definir uma rota de erro condicionalmente.
+        if not GEMINI_API_KEY:
+            print("Erro: Tentativa de usar a API Gemini sem GEMINI_API_KEY configurada.")
+            return jsonify({"error": "Erro no servidor: Chave API do Gemini não configurada."}), 500
+
         data = request.get_json()
         user_message = data.get('user_message')
         chat_history_from_frontend = data.get('chat_history', [])
 
         if not user_message:
             return jsonify({"error": "Mensagem do usuário não fornecida."}), 400
-
-        # Verifica novamente se a API Key foi configurada (para o caso de ser a primeira requisição)
-        if not GEMINI_API_KEY:
-            print("Erro: Tentativa de usar a API Gemini sem GEMINI_API_KEY configurada.")
-            return jsonify({"error": "Erro no servidor: Chave API do Gemini não configurada."}), 500
 
 
         # --- Construção do Histórico para a API do Gemini ---
@@ -113,16 +128,13 @@ Para melhorar a compreensão das suas perguntas, por favor, siga estas diretrize
         }
 
         # 3. Histórico de Conversa real vindo do Frontend
-        # O histórico para a API inclui as instruções do sistema, a saudação inicial da IA,
-        # e todas as mensagens anteriores da conversa.
         history_for_gemini = [system_instruction_part, initial_ai_greeting_part]
         history_for_gemini.extend(chat_history_from_frontend)
 
         # Inicializa o modelo Gemini
-        model = genai.GenerativeModel('gemini-2.0-flash') # Usando gemini-2.0-flash
+        model = genai.GenerativeModel('gemini-2.0-flash')
 
         # Inicia o chat com o histórico completo.
-        # A última mensagem do histórico (a atual do usuário) é enviada via send_message.
         chat_session = model.start_chat(history=history_for_gemini)
 
         # Envia a mensagem do usuário atual para a IA
@@ -133,9 +145,5 @@ Para melhorar a compreensão das suas perguntas, por favor, siga estas diretrize
         return jsonify({"ai_response": ai_response_text})
 
     except Exception as e:
-        print(f"Erro no backend: {e}") # Loga o erro no console do servidor
+        print(f"Erro no backend: {e}")
         return jsonify({"error": "Ocorreu um erro no servidor."}), 500
-
-# Remove o bloco if __name__ == '__main__': para deploy em ambientes como Render/Vercel
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5000)

@@ -1,42 +1,40 @@
-# Python
-__pycache__/
-*.pyc
-*.pyd
-*.pyo
-.Python
-build/
-dist/
-*.egg-info/
-.pytest_cache/
-.coverage
+    # Python
+    __pycache__/
+    *.pyc
+    *.pyd
+    *.pyo
+    .Python
+    build/
+    dist/
+    *.egg-info/
+    .pytest_cache/
+    .coverage
 
-# Virtual Environment
-venv/
-.venv/
-env/
-.env/
+    # Virtual Environment
+    venv/
+    .venv/
+    env/
+    .env/
 
-# IDEs and Editors
-.vscode/        # VS Code specific files
-.idea/          # IntelliJ / PyCharm specific files
-*.sublime-project
-*.sublime-workspace
+    # IDEs and Editors
+    .vscode/
+    .idea/
+    *.sublime-project
+    *.sublime-workspace
 
-# Operating System Files
-.DS_Store       # macOS
-Thumbs.db       # Windows
-ehthumbs.db
-.directory
+    # Operating System Files
+    .DS_Store
+    Thumbs.db
+    ehthumbs.db
+    .directory
 
-# Vercel specific (local build output and config)
-.vercel/         # Local Vercel configuration and build cache
-.next/          # If using Next.js, but good to include generally
+    # Vercel specific (local build output and config)
+    .vercel/
+    .next/
 
-# Render specific (local build output and config)
-.render/        # Local Render configuration (if CLI creates it)
+    # Render specific (local build output and config)
+    .render/
 
-# Sensitive data (API Keys, local environment variables)
-.env            # Common file for local environment variables (if you create one)
-# NUNCA inclua sua chave API diretamente aqui ou em qualquer outro lugar público!
-# A chave GEMINI_API_KEY deve ser configurada APENAS nas variáveis de ambiente do Render.com ou Vercel.
-
+    # Sensitive data (Local environment variables)
+    .env # <--- Adicione esta linha para IGNORAR o arquivo .env
+    
